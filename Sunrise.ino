@@ -139,7 +139,7 @@ void StageTwo() {
     //increment brightness for second cycle
   // strip.setBrightness(13);
 
-//change for git test heelo why isn't this working
+//change for git test heelo why isn't this working hehehehehe
   
     red = 185; 
     green = 83;  
