@@ -9,85 +9,91 @@ RTC_DS3231 rtc;
 #define PIN 6
 
 #define NUM_LEDS 30
-
 #define BRIGHTNESS 10
+
+const int LightSwitchPin = 9; 
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRBW + NEO_KHZ800);
 
-void StageOne();
-void StageTwo();
-void StageThree();
-void StageFour();
-void StageFive();
+void LEDUpdater (uint8_t RedInc, uint8_t GreenInc, uint8_t BlueInc, uint8_t BrightnessInc);
 
 unsigned char  red, green, blue;
-int waitVal = 18000;
 unsigned char brigtness;
 
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 void setup() {
-  // put your setup code here, to run once:
-
-  Serial.begin(9600);
+ 
+    Serial.begin(9600);
 
     if (! rtc.begin()) {
     Serial.println("Couldn't find RTC");
     while (1);
   }
+
+  pinMode(LightSwitchPin, INPUT);
   
   strip.setBrightness(BRIGHTNESS);
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
 
- // Serial.println("START");
+
     if (rtc.lostPower()) {
     Serial.println("RTC lost power, lets set the time!");
-    // following line sets the RTC to the date & time this sketch was compiled
+    
+    // set the time to the time of this compile
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    // This line sets the RTC with an explicit date & time, for example to set
-    // January 21, 2014 at 3am you would call:
-  //   rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-  }
 
+  }
 }
 
 void loop() {
 
-  
-  
-  // put your main code here, to run repeatedly:
-  
-  brigtness = 3;
-
-    if(AlarmCheck() == true)
+    //if the switch is on, run the LEDs based on the pot settings
+    if(digitalRead(LightSwitchPin) == 1)
     {
-      StageOne();
-      StageTwo();
-    //  StageThree();
-      StageFour();
-      StageFive();
+      UserSelectedLED();
     }
 
-   //DateTime now = rtc.now();
+    //else, check the alarm
+    else if(AlarmCheck() == true)
+    {
+      //preload the colour values to their starting point
+      red = 55;
+      green = 63;
+      blue = 135;
+      brigtness = 3;
 
-  //  Serial.print(now.year(), DEC);
-  //  Serial.print('/');
-  //  Serial.print(now.month(), DEC);
-  //  Serial.print('/');
-  //  Serial.print(now.day(), DEC);
-  //  Serial.print(" (");
-  //  Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
- //   Serial.print(") ");
- //   Serial.print(now.hour());
- //   Serial.print(':');
- //   Serial.print(now.minute());
- //   Serial.print(':');
-  //  Serial.print(now.second());
- //   Serial.println();
-    
-    delay(10000);
+      //update the LEDs through a cycle of blue, to red, and then a sun like colour that gets brighter 
+      LEDUpdater(13, 2, -1, 1);
+      LEDUpdater(5, -4, -8, 3);
+      LEDUpdater(0, 8, 1, 10);
+      LEDUpdater(0, 0, 0, 10);
+     }
+
+    delay(10000); //10 second delay so we don't bother the RTC too much
   
+}
+
+void UserSelectedLED()
+{
+    unsigned int RedPotValue, BluePotValue, GreenPotValue, BrightPotValue;
+  
+    RedPotValue = analogRead(A1);
+    RedPotValue = map(RedPotValue, 0, 1024, 0, 255);
+    
+    BluePotValue = analogRead(A2);
+    BluePotValue = map(BluePotValue, 0, 1024, 0, 255);
+    
+    GreenPotValue = analogRead(A3);
+    GreenPotValue = map(GreenPotValue, 0, 1024, 0, 255);
+    
+    BrightPotValue = analogRead(A6);
+    BrightPotValue = map(BrightPotValue, 0, 1024, 0, 255);
+    
+    loadStrip(strip.Color(RedPotValue, BluePotValue, GreenPotValue, 0)); //Load the colour to the strip
+    strip.setBrightness(BrightPotValue);
+    strip.show(); 
+    Serial.println(RedPotValue);  
 }
 
 bool AlarmCheck()
@@ -102,138 +108,28 @@ bool AlarmCheck()
       return true;
     }    
   }
-  
-
+ 
   return false;
 }
-void StageOne()
+
+//This function updates the colours based on the values passed into it
+void LEDUpdater (uint8_t RedInc, uint8_t GreenInc, uint8_t BlueInc, uint8_t BrightnessInc)
 {
-
-
-strip.setBrightness(brigtness);
-
-      red = 55;
-      green = 63;
-      blue = 135;
-
       for( int i = 0; i < 10; i++ ) {
 
-        //equations for the 28-led loop
-        red = red + 13;  // bringing up the red value by 13 for 10 steps to end up at desired color for next animation cycle
-        green = green + 2;    // bringing up the green value by 2 for 10 steps to end up at desired color for next animation cycle
-        blue = blue - 1;  // bringing down the blue value by 1 for 10 steps to end up at desired color for next animation cycle
-        brigtness = brigtness + 1;
-        
-        // Sets the color for the top loop of 28 leds
-        loadStrip(strip.Color(red, green, blue, 0));
-        strip.setBrightness(brigtness);
-        strip.show();
-        //18 second delay between color change. Remember you're waking up slowly here!
-        delay(waitVal);
-        delay(waitVal);
-        }
-}
-
-//second cycle. A little more brightness and moving colors more toward daylight. Works just like the previous animation
-void StageTwo() {
-    //increment brightness for second cycle
-  // strip.setBrightness(13);
-
-//change for git test heelo why isn't this working hehehehehe
-  
-    red = 185; 
-    green = 83;  
-    blue = 125;  
-  
-    for( int i = 0; i < 10; i++ ) {
-  
-        red = red + 5;  
-        green = green - 4;  
-        blue = blue - 8;  
-        brigtness = brigtness + 3;
-        
-        loadStrip(strip.Color(red, green, blue, 0));
-        strip.setBrightness(brigtness);
-        strip.show(); 
- 
-        delay(waitVal);
-        delay(waitVal);
-
-    } //second for loop
-}
-
-void StageThree() {
-
- //  strip.setBrightness(23);
-
-  
-    red = 235; 
-    green = 43;  
-    blue = 15;
-
-    for( int i = 0; i < 10; i++ ) {
-    
-
-        red = red - 18;  // Full Redness
-        green = green + 20;    // Step up to yellow by adding green
-        blue = blue + 11;  // Blue starts at full and goes down to zero
-  
-        // Now loop though each of the LEDs and set each one to the current color
-     
-        
-        loadStrip(strip.Color(red, green, blue, 0));
-        strip.setBrightness(brigtness);
-        strip.show(); 
-        
-        delay(waitVal);
-        delay(waitVal);
-  
-    } //second for loop
-  
-}
-
-void StageFour() {
-
- //  strip.setBrightness(33);
-
-
-  
-    red = 235; 
-    green = 43;  
-    blue = 45;
-  
-    for( int i = 0; i < 10; i++ ) {
-
-
-       // red = red + 14;  // Full Redness
-        green = green + 8;    // Step up to yellow by adding green
-      //  blue = blue + 1;  // Blue starts at full and goes down to zero
-      brigtness = brigtness + 10;
+       red = red + RedInc;          // Update red
+       green = green + GreenInc;    // Update Green
+       blue = blue + BlueInc;       // Update Blue
+       brigtness = brigtness + BrightnessInc;   // Update the Brightness
       
-        strip.setBrightness(brigtness);
-        
-        // Now loop though each of the LEDs and set each one to the current color
-   
-        
-          loadStrip(strip.Color(red, green, blue, 0));
-        strip.show(); 
-        
-        delay(waitVal);
-        delay(waitVal);
-  
-    } //second for loop
-}
+       strip.setBrightness(brigtness);  //Load the brightness setting to the LED strip
+       loadStrip(strip.Color(red, green, blue, 0)); //Load the colour to the strip
+       strip.show(); 
 
-void StageFive()
-{
-   for( int i = 0; i < 10; i++ )
-   {
-    brigtness = brigtness + 10;
-    strip.setBrightness(brigtness);
-    strip.show(); 
-    delay(waitVal);
-    delay(waitVal);
-   }
+       //delay function can't take too big of a value, so call 2
+       delay(18000);
+       delay(18000);
+      }
 }
 
 void loadStrip(uint32_t colour)
